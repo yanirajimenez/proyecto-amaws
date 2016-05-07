@@ -1,0 +1,157 @@
+<!DOCTYPE html> 
+<html>
+<head>
+  <title>AMAWS App</title>
+  <link href="css/bootstrap.css" rel='stylesheet' type='text/css' />
+
+  <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+ <!-- <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script> -->
+    <script src="js/jquery.qrcode-0.11.0.min.js"></script>
+  
+  <!-- Custom Theme files -->
+<link href="css/style.css" rel="stylesheet" type="text/css" media="all" />
+<!-- Custom Theme files -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+
+<!--webfont-->
+<link href='http://fonts.googleapis.com/css?family=Yanone+Kaffeesatz:400,200,300,700' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:200,300,400,600,700,900,200italic,300italic,400italic,600italic,700italic,900italic' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Karla:400,400italic,700,700italic' rel='stylesheet' type='text/css'>
+
+<script type="text/javascript">
+        $(document).ready(function() {
+            initiate();
+
+        });
+
+        function initiate() {
+		
+            if ("WebSocket" in window) {
+                var ws = new WebSocket("ws://52.25.220.113:8180/gencode");
+				//var ws = new WebSocket("ws://localhost:8180/gencode");
+                ws.onopen = function() {
+                    var hello = {
+                        op: 'hello', mac: '00-27-10-2C-9A-D8', usuario: 'carlosl'
+                    };
+                    ws.send(JSON.stringify(hello));
+
+                };
+                ws.onmessage = function(evt) {
+					$("#qrcode").html("");                
+					
+                    var obj = JSON.parse(evt.data);
+                    console.log("Receivied:" + JSON.stringify(obj));
+
+                    if (obj.op == 'hello') 
+                    {
+                        console.log("### Got hello token " + obj.token);
+
+
+                        //Generate QR Code and show to user.
+                        $("#qrcode").qrcode({
+                            "width": 100,
+                            "height": 100,
+                            "text": obj.token
+                        });
+                    } else if (obj.op == 'authdone') 
+                    {
+                        console.log("### Got auth token " + obj.accessToken);
+                        ws.close();
+                        $("#qrcode").hide();
+
+                        $("#profile").html("<img src='iconLoading.gif' />");
+                        getProfileData(obj.accessToken);
+                    }
+
+
+                };
+
+
+                ws.onclose = function() {
+                    console.log("Connection is closed...");
+                };
+            } else {
+                alert("WebSocket NOT supported by your Browser!");
+            }
+        }
+
+	
+        function getProfileData(token) {
+            var url = "https://graph.facebook.com/me?access_token=" + token;
+            $.get(url, function(obj) {
+                var str = "";
+                str += "<b>Your Name:</b>" + obj.first_name + "  " + obj.last_name + "<br>";
+                str += "<b>Gender:</b>" + obj.gender + "<br>";
+                str += "<b>Photo:</b><img src='https://graph.facebook.com/me/picture?access_token=" + token + "'/>" + "<br>";
+                str += "Profile Link:  <a href='" + obj.link + "'>" + obj.link + "</a>";
+                $("#profile").html(str);
+
+            }, "json").error(function(err) {
+
+
+            });;
+
+        }
+    </script>
+
+</head>
+
+
+<body> 
+
+
+<!-- header-section-starts -->
+	<div class="user-desc">
+		<div class="container">
+			<ul>
+				<li><a href="#">AMAWS</a></li>
+			</ul>
+		</div>
+		</div>
+		
+<div class="header">
+		<div class="header-top">
+			<div class="container">
+				
+				<!--script-nav--><div class="top-menu">
+				<span class="menu"> </span>
+					<ul class="cl-effect-15">
+						<li><a href="index.html" data-ajax="false" data-hover="Regresar">Regresar</a></li>					
+					</ul>
+				</div>
+				<!--script-nav-->
+				
+			</div>
+		</div>
+		</div>
+<!-- header-section-ends -->
+	
+
+
+  
+<div class="container">
+	<div class="main">
+	 	<div class="contact">
+			<div class="contact-form">
+			 	<h2>Agregar amigo</h2>
+				<br>
+				<br>
+				<div align="center">
+					<div id="qrcode">
+					  <img src='images/iconLoading.gif' />
+					</div>
+					<div id="profile"></div>
+				</div>
+
+	
+			</div>
+
+		</div>
+	 
+	</div>
+</div>
+
+     
+</body>
+</html>
